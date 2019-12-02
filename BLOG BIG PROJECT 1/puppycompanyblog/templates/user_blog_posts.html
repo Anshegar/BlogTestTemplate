@@ -1,0 +1,124 @@
+{% extends 'base.html'%}
+
+{% block content %}
+<div class="container">
+    <div class="jumbotron">
+        <div align="center">
+            {# Из переданной переменной user которая является результатом фильтра МОДЕЛИ User , извлекаем столбец username
+               Из переданной в шаблон Paginate выборки постов  blog_posts берем метод total что бы знать сколько всего постоав было передано
+            #}
+            <h1>Welome to the page for {{user.username}} Your Total Posts: ({{blog_posts.total}})</h1>
+
+            {# Используется именно user так как mы передали значение user в шаблон. Без этой передачи надо использовать current_user#}
+            <img src="{{url_for('static',filename='profile_pics/'+user.profile_image)}}" alt="">
+        </div>
+    </div>
+
+    {#    Создание ШАБЛОНА страницы БлогПостов
+
+    Так как в ШАБЛОН передается переменная сортировки blog_posts, это обращение ко ВСЕМ ПОСТЫ КОТОРЫЕ ЕСТЬ В БД которая ИЩЕТ в зависимости от author, но нам нужен
+    УЖЕ НАЙДЕННЫЙТоесть  СЛОВАРЬ blog_posts ( где у ОБЪЕКТА всегда минимум 2 аргумента- 'key':'value')
+    ТОЕСТЬ у объекта-словаря POST могут быть ЭЛЕМЕНТЫ 'id':'1','Title':'xxx','author':'yyy','Text':'zzz'  и так далее
+    blog_posts = BlogPost.query.filter_by(author=user).order_by(BlogPost.date.desc()).paginate(page=page,per_page=5)
+    То в ЦИКЛ производит сортировку не по самой переменной, а по ЭЛЕМЕНТАМ В РЕЗУЛЬТАТЕ ПОИСКА (.item() который выводит ВСЕ key+value СЛОВАРЯ)
+    #}
+
+{% for post in blog_posts.items %}
+    {#
+    При перечислении ЭЛЕМЕТОВ, каждый из  проходов создает ссылку на в BLUEPRINT blog_posts  в котором будет вызван его View декоратор .blog_post!!!!!!!!
+    + проводится соединение ПУТЕМ ПЕРЕДАЧИ ДИНАМИЧЕСКОЙ переменной в ДИНАМИЧЕСКИЙ ДЕКОРАТОР blog_post_id=post.id, что бы индентефикационный номер выведеного
+    поста blog_post_id(blog_post\views.py) совпадал с индентефикационным номером ЭЛЕМЕНТА РЕЗУЛЬТАТОВ ПОИСКА в БД post.id( взятый из blog_posts в users/views.py )
+    в итоге у нас ссылка на функция blog_posts.blog_post принявшей для blog_post_id значения вызываемого id BlogPost найденого переменной blog_posts в МОДЕЛИ Постов
+    BlogPost по колонке-связи МОДЕЛЕЙ author(ищется в МОДЕЛИ User по переданой в функцию user_posts динамической переменной).
+    Тоесть при нажатии на сылку пользователь перейдет на тот Пост чейь Title указан в названии.
+    #}
+<h2><a href="{{url_for('blog_posts.blog_post',blog_post_id=post.id)}}">{{post.title}}</a></h2>
+
+    {#    Создание ссылки на автора поста
+
+    Ссылка на BLUEPRINT users  в котором есть функция user_posts()
+    ДИНАМИЧЕСКИЙ ДЕКОРАТОР получает от url_for переменную username которая берется из ЭЛЕМЕНТА ПОИСКА post, в МОДЕЛИ BlogPost КЛЮЧ-колонка author
+    author же это ссылка-связь из BlogPost на МОДЕЛЬ User в которой находится колонка username
+    ТОЕСТЬ  в динамический ДЕКОРАТОР ('/<username>')   ФУНКЦИИ user_post передается переменная username из МОДЕЛИ User к которому переменная blog_posts
+    Имя Автора - берется из ЭЛЕМЕНТА поиска извлекается КЛЮЧ author который является ссылкой на МОДЕЛЬ USER и из МОДЕЛИ берется колонка username
+    Интересно:  - {{user.username}} одно и тоже что и {{post.author.username}}
+    #}
+Written by: <a href="{{url_for('users.user_posts', username=post.author.username)}}">{{post.author.username}}</a>
+
+
+    {# Создание даты создания поста
+    Берется из ЭЛЕНТА ПОИСКА post , КЛЮЧ-колонка BlogPost date и дадается форма strftime( "%Y.%m.%d %H:%M:%S")
+    #}
+<p class="text-muted">Published on: {{post.date.strftime('%Y-%m-%d')}}></p>
+<br>
+
+    {# Добавление Текста по КЛЮЧУ #}
+<p>{{post.text}}</p>
+<br>
+{% endfor %}
+</div>
+
+
+{# Разбивка на страницы посредством Бутстрапа - бутстрап-документейшен-сомпонентс-педжинейшион  С КЛАССОМ ПАГИНАЦИИ , но без троеточия иначе все съезжает! #}
+<nav aria-label="Page navigation example">
+      <ul class="pagination justify-content-center">
+
+          {# Кнопка НАЗАД #}
+          {% if blog_posts.has_prev %} <a class="btn btn-outline-info mb-4" href="{{ url_for_other_page(blog_posts.page - 1) }}"> &laquo;</a> {% endif %}
+
+            {#
+            !!!! Используем в примере СТРАНО вроде написано blog_posts, тоесть тоесть по ВСЕМ ОБЪЕКТАМ (а не Эллементам)поиска, метод пагинаци iter_pages() !!!!
+            iter_pages() - метод пагинации, разбивки на страницы, их количество, сколько КНОПОК должно отображаться справа и слева от текущей активной
+            Для этого метода создается ЦИКЛ, в котором делаются ЛИНКИ(ссылки) на создаваемые этим методом страницы
+            iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2 ) - 4 параметра , если параметр не задан он становится равен None
+            left_edge\right_edge - сколько страниц отображается ПОКРАЯМ списка страниц
+            left_current\right_current  сколько страниц отображается по СТОРОНАМ от текущей страницы -( right_current по умолчанию включает и ТЕКУЩУЮ страницуи
+            и начинается с 0 а не с 1 тоесть надо к его значению добавить +1)
+            https://flask-sqlalchemy.palletsprojects.com/en/2.x/api/#flask_sqlalchemy.Pagination.iter_pages
+            #}
+          {% for page_num in blog_posts.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2 ) %}
+
+            {# Если кнопка-страницы существует ( тоесть не None) то #}
+            {% if page_num %}
+
+
+                {# Если выбрана страница в # которой в URL совпадает с номером кнопки страницы то кнопка неактивна, иначе активна
+                ЕСЛИ СТРАНИЦА ВКЛЮЧЕНА ( открыта перед пользователем)
+                page_num - берется из  page_num in blog_posts.iter_pages() выше
+                Если я нахожусь на той же странице чей номер в КОДЕ сопадает с номером в ШАБЛОНЕ HTML , то создается СПИСОК, тоесть как эжто не тупо звучит ЕСЛИ я нахожусь
+                на страинице которую. я щас просматриваю то:...
+                #}
+
+
+                {% if blog_posts.page == page_num %}
+
+                {#
+                disabled выключение  прописывается так как мы уже на этой странице и нет смысла подсвечивать КНОПКУ как возможную длля нажатия
+                Берутся данные из BLUEPRINT core функции undex
+                #}
+                <li class="page-item disabled">
+                    <a class="btn btn-info mb-4" href="{{url_for('users.user_posts', username=user.username, page=page_num)}}">{{page_num}}</a>
+                </li>
+
+                {% else %}
+                <li class="page-item">
+                    <a class="btn btn-outline-info mb-4"  href="{{url_for('users.user_posts', username=user.username, page=page_num)}}">{{page_num}}</a>
+                </li>
+
+                {% endif %}
+
+            {# Если кнопка-страницы несуществует ( тоесть  None) то вместо None пешет то что указано( в lаном случае "") #}
+            {% else %}
+            {% endif %}
+          {% endfor %}
+
+          {# Кнопка ВПЕРЕД #}
+          {% if blog_posts.has_next %}
+          <a class="btn btn-outline-info mb-4" href="{{ url_for_other_page(blog_posts.page + 1)}}">&raquo;</a>
+          {% endif %}
+
+
+  </ul>
+</nav>
+
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="jumbotron">
+        <h1>Puppy Company Blog</h1>
+    </div>
+
+    {# С помощью BootsTrap Cards создаем список всех постов блога(не критично, можно и без него) + способности страницы, такие как перелистывание, список и т.д. #}
+    <div class="container">
+        {# Сначала достаем КАЖДЫЙ ПОСТ (это ОБЪЕКТ МОДЕЛИ с КОЛОНКАМИ) из переданого нам СЛОВАРЯ поиска по БД и запихиваем его в блоки с классом BootsTrap card #}
+        {% for  post in blog_posts.items  %}
+        <div class="card">
+            <div class="card-body">
+                {# ВАЖНО НЕЗАБЫТЬ !!!!! Передать в ДИНАМИЧЕСКИЙ ДЕКОРАТОР функции динамическую переменную добытую из БД - ,blog_post_id=post_id#}
+                <h2><a class='card-title' href="{{url_for('blog_posts.blog_post',blog_post_id=post.id)}}">{{post.title}}</a></h2>
+                {# author это ССЫЛКА на User() и его колонки, а не само имя!#}
+                <a href="{{url_for('users.user_posts', username=post.author.username)}}">Writen by: {{post.author.username}}</a>
+
+                <p>Published on: {{post.date.strftime("%Y - %m - %d")}}</p>
+                <a class='btn btn-primary' href="{{url_for('blog_posts.blog_post',blog_post_id=post.id)}}">Read Bolg Post</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+<br>
+{# Разбивка на страницы посредством Бутстрапа - бутстрап-документейшен-сомпонентс-педжинейшион   БЕЗ КЛАССА ПАГИНАЦИИ #}
+<nav aria-label="Page navigation example" align='center'>
+
+            {#
+            !!!! Используем в примере СТРАНО вроде написано blog_posts, тоесть тоесть по ВСЕМ ОБЪЕКТАМ (а не Эллементам)поиска, метод пагинаци iter_pages() !!!!
+
+            iter_pages() - метод пагинации, разбивки на страницы, их количество, сколько КНОПОК должно отображаться справа и слева от текущей активной
+            Для этого метода создается ЦИКЛ, в котором делаются ЛИНКИ(ссылки) на создаваемые этим методом страницы
+
+            iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2 ) - 4 параметра , если параметр не задан он становится равен None
+            left_edge\right_edge - сколько страниц отображается ПОКРАЯМ списка страниц
+            left_current\right_current  сколько страниц отображается по СТОРОНАМ от текущей страницы -( right_current по умолчанию включает и ТЕКУЩУЮ страницуи
+            и начинается с 0 а не с 1 тоесть надо к его значению добавить +1)
+            https://flask-sqlalchemy.palletsprojects.com/en/2.x/api/#flask_sqlalchemy.Pagination.iter_pages
+            #}
+
+          {% for page_num in blog_posts.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2 ) %}
+
+            {# Если кнопка-страницы существует ( тоесть не None) то #}
+            {% if page_num %}
+
+
+                    {# ЕСЛИ СТРАНИЦА ВКЛЮЧЕНА ( открыта перед пользователем)
+                    page_num - берется из  page_num in blog_posts.iter_pages() выше
+                    Если я нахожусь на той же странице чей номер в КОДЕ сопадает с номером в ШАБЛОНЕ HTML , то создается СПИСОК, тоесть как эжто не тупо звучит ЕСЛИ я нахожусь
+                    на страинице которую. я щас просматриваю то:...
+                    #}
+                {% if blog_posts.page == page_num %}
+
+                {#
+                disabled выключение  прописывается так как мы уже на этой странице и нет смысла подсвечивать КНОПКУ как возможную длля нажатия
+                Берутся данные из BLUEPRINT core функции index
+                #}
+
+                    <a class="btn btn-info mb-4" href="{{url_for('core.index', page=page_num)}}">{{page_num}}</a>
+
+
+                {% else %}
+                
+                    <a class="btn btn-outline-info mb-4" href="{{url_for('core.index', page=page_num)}}">{{page_num}}</a>
+
+                {% endif %}
+
+            {# Если кнопка-страницы несуществует ( тоесть  None) то вместо None пешет то что указано( в жаном случае "...") #}
+            {% else %}
+             ...
+            {% endif %}
+
+          {% endfor %}
+
+</nav>
+
+{% endblock %}

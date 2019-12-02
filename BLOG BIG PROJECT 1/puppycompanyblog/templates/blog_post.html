@@ -1,0 +1,58 @@
+{% extends 'base.html'%}
+
+{% block content %}
+<div class="jumbotron">
+    {# Так как мы передали и полностью пост и оп частям то модно указывать и post.title и просто title #}
+    <h1>{{post.title}}</h1>
+    <h4>{{title}}</h4>
+    {# author это ссылка на МОДЕЛЬ User() со всеми его колонками в том числе username#}
+    <h2>Writen by: {{post.author.username}}</h2>
+    {# Можно просто передать дату, а можно ОБАБОТАТЬ её ПРЯМО В ШАБЛОНЕ, так же как в питоне это делается! см. документацию по ДАТЕ #}
+    <h3>Published {{post.date.strftime('%B %d, %Y')}}</h3>
+    <p>{{post.text}}</p>
+
+    {# Добавление кнопок для СОЗДАТЕЛЯ  Поста! можно с указанием id post.author.id, а можно и без #}
+    {% if post.author == current_user %}
+        <div>
+            {# Передаем ПЕРЕМЕННУЮ в ДИНАМИЧЕСКИЙ ДЕКОРАТОР, что бы функция знала какой ПОСТ по id вызывать #}
+            <a href="{{url_for('blog_posts.update', blog_post_id=post.id)}}">Update</a>
+
+    {# СОЗДАЕМ МОДАЛЬНОЕ ОКНО ИЗ КНОПКИ ("Живое» демо"), и присоеденяем к нему созданую в ШАБЛОНЕ ryjgre-  Так как нету ШАБЛОНА для УДАЛЕНИЯ, то можно оботись всеголишь
+            1 кнопкой ссылающейся на View-Control функцию удаления --- https://bootstrap-4.ru/docs/4.3.1/components/modal/ #}
+            {# Кнопка АКТИВАЦИИ МОДАЛЬНОГО ОКНА - ID Модального окна data-target="#del_modal"#}
+            <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#del_modal">Delete</button>
+        </div>
+    {% endif %}
+    {# МОДАЛЬНОЕ ОКНО #}
+    <div class="modal" tabindex="-1" role="dialog" id="del_modal">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Delete Post?</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <p>Are you sure you want to delete the post</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+            {#  ВМЕСТО установленной в Bootstrap кнопки <button type="button" class="btn btn-primary">Delete</button> можно использовать красивую МИНИ форму#}
+            {# Что бы активировать кнопку Delete мы использовать ОБРАБОТЧИК форм(action=''), в миниформе которая ведет на {{url_for('blog_posts.delete_post')}}
+            ТАК ЖЕ  миниформа должна ПЕРЕДАВАТЬ в ДИНАМИЧЕСКИЙ ДЕКОРАТОР функции удаления переменную blog_post_id, берущуюся из id поста который просматривает пользователь#}
+            <form action="{{url_for('blog_posts.delete_post', blog_post_id=post.id)}}" method="POST">
+                {# Создаем кнопку submit, что бы активировать отправку формы #}
+                <input class="btn btn-danger" type="submit" value="Delete">
+            </form>
+
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+</div>
+
+{% endblock %}

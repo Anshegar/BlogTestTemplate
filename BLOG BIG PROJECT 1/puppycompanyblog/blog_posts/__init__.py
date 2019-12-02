@@ -1,0 +1,1 @@
+blog_posts_test = 'blog_post_test Test Sucssesful! '
